@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>保险经纪公司企业 AI 化诊断</title>
+<style>
+:root{--bg:#f5f7fb;--card:#fff;--ink:#152238;--muted:#6b778c;--line:#dfe5ee;--pri:#0f5ea8;--pri2:#13a39d}
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink)}
+.wrap{max-width:1060px;margin:auto;padding:22px}.hero{padding:28px;border-radius:20px;color:white;background:linear-gradient(135deg,#0f5ea8,#123d70 58%,#0f7775)}
+h1{margin:0 0 8px;font-size:29px}.hero p{margin:5px 0}.card{background:white;border:1px solid var(--line);border-radius:16px;padding:20px;margin:16px 0;box-shadow:0 5px 18px rgba(25,46,75,.04)}
+label{font-size:13px;color:var(--muted)}input,select,textarea{width:100%;padding:11px;border:1px solid var(--line);border-radius:10px;font:inherit;background:white}
+textarea{min-height:105px;resize:vertical}.row{display:flex;gap:12px;flex-wrap:wrap}.field{flex:1;min-width:210px}
+button,.btn{border:0;border-radius:10px;padding:9px 13px;font-weight:650;cursor:pointer}.primary{background:var(--pri);color:white}.secondary{background:#eaf2fb;color:#174b7b}
+.q{padding:15px 0;border-top:1px solid #edf1f5}.q:first-of-type{border-top:0}.qid{font-size:12px;font-weight:700;color:var(--pri)}.qtext{font-weight:650;line-height:1.55;margin:4px 0 10px}
+.actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:7px}.small,.status{font-size:12px;color:var(--muted)}
+.progress{height:9px;background:#e6ebf1;border-radius:10px;overflow:hidden}.bar{height:100%;background:linear-gradient(90deg,var(--pri),var(--pri2))}
+.notice{padding:12px 14px;margin:14px 0;border-radius:12px;background:#fff7d6;color:#624f00}.material{padding:9px 0;border-top:1px solid #edf1f5;display:flex;gap:9px}.material input{width:auto}
+.pill{display:inline-block;background:#eef6ff;color:#155b95;border-radius:999px;padding:4px 8px;margin:3px 5px 0 0}.hidden{display:none}
+.rolebox{background:#eff8ff;border:1px solid #cde3f8;padding:15px;border-radius:13px;margin-top:14px}
+@media(max-width:720px){.wrap{padding:10px}.hero{padding:20px}h1{font-size:23px}}
+</style></head>
+<body><div class="wrap">
+<div class="hero">
+<h1>保险经纪公司企业 AI 化诊断</h1>
+<p>本问卷会根据你的岗位自动显示相关问题，不要求回答自己不了解的内容。</p>
+<p class="small" style="color:#e7f4ff">支持文字、录音与附件。原始回答会作为诊断证据保留。</p>
+</div>
+<div class="notice">请勿上传密码、API Key、银行卡原件、未脱敏医疗资料或完整生产数据库。敏感业务资料请先脱敏。</div>
+
+<div class="card">
+<h2>第一步：选择身份</h2>
+<div class="row">
+ <div class="field"><label>姓名 / 代称</label><input id="name" placeholder="如：董总 / 经纪人A"></div>
+ <div class="field"><label>岗位角色</label><select id="role"></select></div>
+ <div class="field"><label>公司</label><input id="company" placeholder="公司名称"></div>
+</div>
+<div class="rolebox" id="roleHint">选择岗位后，只会显示与你相关的问题。</div>
+<div class="actions"><button class="primary" id="startBtn">进入我的问卷</button><span class="status" id="ridText"></span></div>
+</div>
+
+<div id="survey" class="hidden">
+ <div class="card">
+  <b id="roleTitle"></b>
+  <div class="small" id="countText"></div>
+  <div class="progress"><div class="bar" id="bar" style="width:0"></div></div>
+ </div>
+ <div id="sections"></div>
+ <div class="card"><h2>与你岗位相关的资料清单</h2><div id="materials"></div></div>
+</div>
+</div>
+<script>
+const EMBEDDED_SCHEMA = {"roles": {"owner": "老板 / 董事长 / 总经理", "business_head": "业务负责人 / 部门负责人", "broker": "经纪人 / 客户经理 / 销售", "placement": "产品 / Placement / 核保支持", "claims": "理赔人员", "operations": "运营 / 出单 / 客服", "finance": "财务 / 佣金结算", "compliance": "合规 / 法务 / 内控", "it": "IT / 系统管理员 / 泛维管理员"}, "questions": [{"section": "0", "domain": "共同问题", "id": "C0_1", "text": "请简单描述你的岗位职责，以及你在一笔保险业务中通常负责哪些工作？", "roles": ["owner", "business_head", "broker", "placement", "claims", "operations", "finance", "compliance", "it"]}, {"section": "0", "domain": "共同问题", "id": "C0_2", "text": "在你日常工作中，最耗时间、最重复、最容易返工的三件事是什么？", "roles": ["owner", "business_head", "broker", "placement", "claims", "operations", "finance", "compliance", "it"]}, {"section": "0", "domain": "共同问题", "id": "C0_3", "text": "哪些事情最依赖个人经验、老员工或特定同事？如果他们不在，工作会受到什么影响？", "roles": ["owner", "business_head", "broker", "placement", "claims", "operations", "finance", "compliance", "it"]}, {"section": "0", "domain": "共同问题", "id": "C0_4", "text": "你日常最常使用哪些系统或工具（企微、泛微、Excel、邮件、保险公司系统等）？最不方便的是什么？", "roles": ["owner", "business_head", "broker", "placement", "claims", "operations", "finance", "compliance", "it"]}, {"section": "0", "domain": "共同问题", "id": "C0_5", "text": "如果公司只能优先解决一个问题，你最希望先解决什么？为什么？", "roles": ["owner", "business_head", "broker", "placement", "claims", "operations", "finance", "compliance", "it"]}, {"section": "A", "domain": "老板 / 高管", "id": "A1", "text": "公司目前总人数、经纪业务人员、活跃经纪人、主要业务条线分别是什么？", "roles": ["owner"]}, {"section": "A", "domain": "老板 / 高管", "id": "A2", "text": "请概述最近三年的收入、利润、保费规模和人员变化趋势。", "roles": ["owner"]}, {"section": "A", "domain": "老板 / 高管", "id": "A3", "text": "公司最赚钱的前三类业务是什么？未来两年最想重点发展的业务是什么？", "roles": ["owner"]}, {"section": "A", "domain": "老板 / 高管", "id": "A4", "text": "目前限制公司增长的前三个瓶颈是什么？", "roles": ["owner"]}, {"section": "A", "domain": "老板 / 高管", "id": "A5", "text": "如果两年 AI 转型成功，最希望看到哪三项经营指标明显改善？", "roles": ["owner"]}, {"section": "A", "domain": "老板 / 高管", "id": "A6", "text": "公司吸引优秀经纪人的核心优势是什么？竞争对手最常用什么方式挖人？", "roles": ["owner"]}, {"section": "A", "domain": "老板 / 高管", "id": "A7", "text": "你希望公司未来的核心数字资产掌握在自己手中到什么程度？哪些数据绝不能外流？", "roles": ["owner"]}, {"section": "A", "domain": "老板 / 高管", "id": "A8", "text": "目前泛微、企微及其他系统每年大约投入多少费用？你对这些系统的满意度如何？", "roles": ["owner"]}, {"section": "B", "domain": "业务负责人", "id": "B1", "text": "你负责的业务条线目前有多少客户、经纪人、年保费和收入规模？", "roles": ["business_head"]}, {"section": "B", "domain": "业务负责人", "id": "B2", "text": "从获客到成交，最常见的卡点在哪里？", "roles": ["business_head"]}, {"section": "B", "domain": "业务负责人", "id": "B3", "text": "经纪人最需要公司提供哪些支持，才能更容易成交和续保？", "roles": ["business_head"]}, {"section": "B", "domain": "业务负责人", "id": "B4", "text": "哪些业务流程最依赖跨部门协作？在哪里最容易等待或返工？", "roles": ["business_head"]}, {"section": "B", "domain": "业务负责人", "id": "B5", "text": "你如何评价当前产品、Placement、运营和理赔对前线业务的支持效率？", "roles": ["business_head"]}, {"section": "B", "domain": "业务负责人", "id": "B6", "text": "你能否实时看到业务漏斗、成交率、续保率和团队人均产出？目前缺哪些数据？", "roles": ["business_head"]}, {"section": "C", "domain": "经纪人 / 客户经理", "id": "C1", "text": "你的客户主要从哪里来？公司提供的客户线索占比大约多少？", "roles": ["broker"]}, {"section": "C", "domain": "经纪人 / 客户经理", "id": "C2", "text": "一天工作中，你大约有多少时间真正花在客户沟通、销售和专业服务上？", "roles": ["broker"]}, {"section": "C", "domain": "经纪人 / 客户经理", "id": "C3", "text": "准备一个客户方案时，你通常需要找哪些资料、找哪些人、花多长时间？", "roles": ["broker"]}, {"section": "C", "domain": "经纪人 / 客户经理", "id": "C4", "text": "询价、报价整理、核保补件、出单、续保、理赔中，哪几个环节最影响你服务客户？", "roles": ["broker"]}, {"section": "C", "domain": "经纪人 / 客户经理", "id": "C5", "text": "哪些信息需要在企微、Excel、泛微或保司系统之间重复录入？", "roles": ["broker"]}, {"section": "C", "domain": "经纪人 / 客户经理", "id": "C6", "text": "客户最常向你问哪些问题？哪些问题你经常重复回答？", "roles": ["broker"]}, {"section": "C", "domain": "经纪人 / 客户经理", "id": "C7", "text": "如果系统能帮你自动完成三类工作，你最希望是哪三类？", "roles": ["broker"]}, {"section": "C", "domain": "经纪人 / 客户经理", "id": "C8", "text": "你是否能方便地看到自己的客户、续保提醒、报价进度、理赔进度和佣金？哪里最不透明？", "roles": ["broker"]}, {"section": "C", "domain": "经纪人 / 客户经理", "id": "C9", "text": "什么样的平台支持会让你更愿意长期留在公司、并愿意把更多客户放在公司体系内经营？", "roles": ["broker"]}, {"section": "D", "domain": "产品 / Placement / 核保支持", "id": "D1", "text": "收到一个新业务后，你需要哪些资料才能开始判断和询价？最常缺什么？", "roles": ["placement"]}, {"section": "D", "domain": "产品 / Placement / 核保支持", "id": "D2", "text": "保险公司承保偏好、产品知识和历史报价目前记录在哪里？是否容易检索？", "roles": ["placement"]}, {"section": "D", "domain": "产品 / Placement / 核保支持", "id": "D3", "text": "一个项目平均询价几家保险公司？有效报价几家？平均需要多久？", "roles": ["placement"]}, {"section": "D", "domain": "产品 / Placement / 核保支持", "id": "D4", "text": "核保问题通常要来回补充几轮？最常见的补件原因是什么？", "roles": ["placement"]}, {"section": "D", "domain": "产品 / Placement / 核保支持", "id": "D5", "text": "报价回来以后如何标准化、比较责任、除外、限额、免赔额和保费？目前有多少人工复制？", "roles": ["placement"]}, {"section": "D", "domain": "产品 / Placement / 核保支持", "id": "D6", "text": "拒保、加费、特殊条件和核保意见是否沉淀为可搜索经验？", "roles": ["placement"]}, {"section": "D", "domain": "产品 / Placement / 核保支持", "id": "D7", "text": "哪些判断适合系统辅助，哪些判断你认为必须由资深人员负责？", "roles": ["placement"]}, {"section": "E", "domain": "理赔人员", "id": "E1", "text": "客户报案后，从受理到结案的完整流程是什么？", "roles": ["claims"]}, {"section": "E", "domain": "理赔人员", "id": "E2", "text": "理赔资料最常缺哪些？补件通常来回几次？", "roles": ["claims"]}, {"section": "E", "domain": "理赔人员", "id": "E3", "text": "案件进度如何记录？客户和经纪人如何知道当前状态？", "roles": ["claims"]}, {"section": "E", "domain": "理赔人员", "id": "E4", "text": "最耗时间的工作是材料整理、沟通、定责判断、催办还是其他？", "roles": ["claims"]}, {"section": "E", "domain": "理赔人员", "id": "E5", "text": "拒赔或争议案件的原因是否被系统化沉淀，并反馈给投保和产品设计？", "roles": ["claims"]}, {"section": "E", "domain": "理赔人员", "id": "E6", "text": "哪些理赔工作可以标准化，哪些必须依赖专家判断或人工沟通？", "roles": ["claims"]}, {"section": "F", "domain": "运营 / 出单 / 客服", "id": "F1", "text": "从客户确认到出单，完整流程是什么？同一份信息需要录入几次？", "roles": ["operations"]}, {"section": "F", "domain": "运营 / 出单 / 客服", "id": "F2", "text": "你每天最常处理的五类任务是什么？每类大约占多少时间？", "roles": ["operations"]}, {"section": "F", "domain": "运营 / 出单 / 客服", "id": "F3", "text": "哪些流程同时要填 Excel 和泛微？请列出最典型的几项。", "roles": ["operations"]}, {"section": "F", "domain": "运营 / 出单 / 客服", "id": "F4", "text": "最容易出错或返工的字段、表单和流程是什么？", "roles": ["operations"]}, {"section": "F", "domain": "运营 / 出单 / 客服", "id": "F5", "text": "批改、加减人、续保、保全分别如何处理？月均处理量大约多少？", "roles": ["operations"]}, {"section": "F", "domain": "运营 / 出单 / 客服", "id": "F6", "text": "哪些工作如果自动化，会最明显地提高你的服务效率和准确率？", "roles": ["operations"]}, {"section": "G", "domain": "财务 / 佣金结算", "id": "G1", "text": "保费、佣金、发票、应收应付、付款审批目前分别在哪些系统或 Excel 中管理？", "roles": ["finance"]}, {"section": "G", "domain": "财务 / 佣金结算", "id": "G2", "text": "佣金如何计算、核对和结算？哪些环节仍依赖人工 Excel？", "roles": ["finance"]}, {"section": "G", "domain": "财务 / 佣金结算", "id": "G3", "text": "对账最常见的差异和返工原因是什么？", "roles": ["finance"]}, {"section": "G", "domain": "财务 / 佣金结算", "id": "G4", "text": "经纪人能否及时看到自己的应收佣金、已收佣金和结算状态？", "roles": ["finance"]}, {"section": "G", "domain": "财务 / 佣金结算", "id": "G5", "text": "哪些业务数据需要从泛微或其他系统二次录入财务？", "roles": ["finance"]}, {"section": "G", "domain": "财务 / 佣金结算", "id": "G6", "text": "你最希望系统自动生成哪些报表、核对结果或异常提醒？", "roles": ["finance"]}, {"section": "H", "domain": "合规 / 法务 / 内控", "id": "H1", "text": "目前哪些业务动作必须经过合规、法务或管理层审批？", "roles": ["compliance"]}, {"section": "H", "domain": "合规 / 法务 / 内控", "id": "H2", "text": "客户告知、产品推荐、授权、业务档案、佣金、投诉等关键证据目前如何留存？", "roles": ["compliance"]}, {"section": "H", "domain": "合规 / 法务 / 内控", "id": "H3", "text": "哪些岗位可以查看、导出、修改敏感客户资料？权限是否定期复核？", "roles": ["compliance"]}, {"section": "H", "domain": "合规 / 法务 / 内控", "id": "H4", "text": "管理员后台修改、数据导出、权限变更是否有审批和审计日志？", "roles": ["compliance"]}, {"section": "H", "domain": "合规 / 法务 / 内控", "id": "H5", "text": "当前最担心的三类合规风险是什么？", "roles": ["compliance"]}, {"section": "H", "domain": "合规 / 法务 / 内控", "id": "H6", "text": "哪些 AI 使用场景你认为必须设置人工审批或禁止自动执行？", "roles": ["compliance"]}, {"section": "I", "domain": "IT / 系统管理员", "id": "I1", "text": "当前主要系统有哪些？分别由谁管理、部署在哪里、年费和运维成本大约多少？", "roles": ["it"]}, {"section": "I", "domain": "IT / 系统管理员", "id": "I2", "text": "企微、泛微、财务及其他系统目前有哪些 API、数据库接口或导出能力？", "roles": ["it"]}, {"section": "I", "domain": "IT / 系统管理员", "id": "I3", "text": "泛微有哪些高频流程？哪些流程维护成本最高、二开最困难？", "roles": ["it"]}, {"section": "I", "domain": "IT / 系统管理员", "id": "I4", "text": "目前数据备份、容灾、账号管理、日志、补丁和安全策略是什么？", "roles": ["it"]}, {"section": "I", "domain": "IT / 系统管理员", "id": "I5", "text": "是否存在共享账号、离职账号未及时回收、权限过大的情况？", "roles": ["it"]}, {"section": "I", "domain": "IT / 系统管理员", "id": "I6", "text": "目前最难维护、最容易故障或最依赖供应商的系统是什么？", "roles": ["it"]}, {"section": "I", "domain": "IT / 系统管理员", "id": "I7", "text": "如果未来新增本地 AI/数据平台，现有网络、机房、NAS、VPN 和运维能力有哪些可复用？", "roles": ["it"]}], "materials": [{"id": "M01", "text": "最近三年经营数据：收入、毛利、净利润、人工成本、IT/SaaS费用、保费规模", "roles": ["owner", "finance"]}, {"id": "M02", "text": "业务结构汇总：按险种、保险公司、客户类型、经纪人、渠道", "roles": ["owner", "business_head", "finance"]}, {"id": "M03", "text": "匿名经纪人产能数据：客户数、保费、收入、佣金、新单、续保", "roles": ["owner", "business_head"]}, {"id": "M04", "text": "脱敏客户/商机数据或典型客户样本", "roles": ["business_head", "broker"]}, {"id": "M05", "text": "典型询价项目：Submission、核保问题、报价、比价表、最终选择", "roles": ["placement", "broker", "business_head"]}, {"id": "M06", "text": "典型理赔案例及案件台账（脱敏）", "roles": ["claims", "business_head"]}, {"id": "M07", "text": "投保、出单、批改、续保、保全使用的主要表单和 Excel", "roles": ["operations"]}, {"id": "M08", "text": "佣金、对账、应收应付使用的 Excel 或报表样本", "roles": ["finance"]}, {"id": "M09", "text": "企微、泛微和其他系统清单、流程清单、费用和接口情况", "roles": ["it", "owner"]}, {"id": "M10", "text": "制度：业务、佣金、合规、客户、理赔、权限、数据安全等", "roles": ["compliance", "owner"]}]};
+let schema=null,rid=localStorage.getItem("diag_v12_rid")||"",currentRole=localStorage.getItem("diag_v12_role")||"";
+let LOCAL_PREVIEW = (location.protocol === "file:");
+let mediaRecorder=null,chunks=[],currentQ=null;
+const $=id=>document.getElementById(id);
+function esc(s){return (s||"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]))}
+async function api(url,opt={}){
+  if(LOCAL_PREVIEW) throw new Error("local-preview");
+  const r=await fetch(url,opt);
+  if(!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+async function init(){
+  try{
+    schema = LOCAL_PREVIEW ? EMBEDDED_SCHEMA : await api("/api/schema");
+  }catch(e){
+    schema = EMBEDDED_SCHEMA;
+    LOCAL_PREVIEW = true;
+  }
+  $("role").innerHTML = Object.entries(schema.roles)
+    .map(([k,v])=>`<option value="${k}">${esc(v)}</option>`).join("");
+  if(currentRole && schema.roles[currentRole]) $("role").value=currentRole;
+  $("roleHint").innerHTML = LOCAL_PREVIEW
+    ? "当前为<strong>本地预览模式</strong>：可以选择角色并完整浏览/填写问卷；答案只保存在本机浏览器，不会同步到后台。正式部署后会自动切换为服务器同步模式。"
+    : "选择岗位后，只会显示与你相关的问题。";
+}
+function applicableQuestions(role){return schema.questions.filter(q=>q.roles.includes(role))}
+function applicableMaterials(role){return schema.materials.filter(m=>m.roles.includes(role))}
+function renderSurvey(role){
+ currentRole=role; localStorage.setItem("diag_v12_role",role);
+ const qs=applicableQuestions(role), mats=applicableMaterials(role);
+ $("roleTitle").textContent=`当前身份：${schema.roles[role]}`;
+ $("countText").textContent=`仅显示与你相关的 ${qs.length} 个问题。`;
+ $("sections").innerHTML="";
+ const grouped={}; for(const q of qs){if(!grouped[q.section])grouped[q.section]=[];grouped[q.section].push(q)}
+ for(const [sec,items] of Object.entries(grouped)){
+   const c=document.createElement("div");c.className="card";c.innerHTML=`<h2>${esc(items[0].domain)}</h2>`;
+   for(const q of items){
+     const d=document.createElement("div");d.className="q";
+     d.innerHTML=`<div class="qid">${q.id}</div><div class="qtext">${esc(q.text)}</div>
+       <textarea id="t_${q.id}" placeholder="可以文字回答；也可以录音回答"></textarea>
+       <div class="actions">
+        <button class="primary" onclick="saveAnswer('${q.id}')">保存文字</button>
+        <button class="secondary" id="rec_${q.id}" onclick="toggleRecord('${q.id}')">🎙 开始录音</button>
+        <label class="secondary btn">上传附件/录音<input type="file" multiple style="display:none" onchange="uploadFiles('${q.id}',this.files)"></label>
+        <span class="status" id="st_${q.id}"></span>
+       </div><div id="files_${q.id}"></div>`;
+     c.appendChild(d);
+   } $("sections").appendChild(c);
+ }
+ $("materials").innerHTML=mats.map(m=>`<div class="material"><input type="checkbox" id="m_${m.id}" onchange="saveMaterial('${m.id}',this.checked)"><div><b>${m.id}</b> ${esc(m.text)}</div></div>`).join("") || '<div class="small">当前岗位暂无必须准备的资料。</div>';
+ $("survey").classList.remove("hidden");
+ restoreLocal(qs,mats); updateProgress();
+}
+async function start(){
+ const role=$("role").value; renderSurvey(role);
+ if(!rid){
+   const r=await api("/api/respondents",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:$("name").value,role:schema.roles[role],company:$("company").value})});
+   rid=r.respondent_id;localStorage.setItem("diag_v12_rid",rid);
+ }
+ $("ridText").textContent="填写编号："+rid;
+}
+async function saveAnswer(qid){
+ if(!rid) await start();
+ const text=$("t_"+qid).value;
+ if(!LOCAL_PREVIEW){
+   await api("/api/answers",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({respondent_id:rid,question_id:qid,text})});
+ }
+ localStorage.setItem("v12_ans_"+qid,text);
+ $("st_"+qid).textContent=LOCAL_PREVIEW ? "已保存在本机浏览器" : "已保存到服务器";
+ updateProgress();
+}
+async function saveMaterial(mid,checked){
+ if(!rid) await start();
+ if(!LOCAL_PREVIEW){
+   await api("/api/materials",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({respondent_id:rid,material_id:mid,checked})});
+ }
+ localStorage.setItem("v12_mat_"+mid,checked?"1":"0");
+}
+async function uploadBlob(qid,blob,name,kind){
+ if(!rid) await start();
+ if(LOCAL_PREVIEW){
+   $("files_"+qid).innerHTML+=`<span class="pill">${kind==="audio"?"🎙":"📎"} ${esc(name)}（本地预览，不上传）</span>`;
+   return;
+ }
+ const fd=new FormData();fd.append("respondent_id",rid);fd.append("question_id",qid);fd.append("kind",kind);fd.append("file",blob,name);
+ const r=await fetch("/api/upload",{method:"POST",body:fd});if(!r.ok)throw new Error(await r.text());const x=await r.json();
+ $("files_"+qid).innerHTML+=`<span class="pill">${kind==="audio"?"🎙":"📎"} ${esc(name)}</span>`;
+}
+async function uploadFiles(qid,files){for(const f of files)await uploadBlob(qid,f,f.name,f.type.startsWith("audio/")?"audio":"attachment");$("st_"+qid).textContent="文件已上传"}
+async function toggleRecord(qid){
+ if(mediaRecorder&&mediaRecorder.state==="recording"){mediaRecorder.stop();return}
+ if(!navigator.mediaDevices?.getUserMedia){alert("当前环境无法直接录音，请上传已有录音。正式部署建议使用 HTTPS。");return}
+ try{
+ const stream=await navigator.mediaDevices.getUserMedia({audio:true});chunks=[];currentQ=qid;mediaRecorder=new MediaRecorder(stream);
+ mediaRecorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
+ mediaRecorder.onstop=async()=>{stream.getTracks().forEach(t=>t.stop());const b=new Blob(chunks,{type:mediaRecorder.mimeType||"audio/webm"});await uploadBlob(currentQ,b,`answer_${currentQ}_${Date.now()}.webm`,"audio");$("rec_"+currentQ).textContent="🎙 开始录音";$("st_"+currentQ).textContent="录音已上传"};
+ mediaRecorder.start();$("rec_"+qid).textContent="⏹ 停止并上传";
+ }catch(e){alert("无法启用麦克风："+e.message)}
+}
+function restoreLocal(qs,mats){for(const q of qs){const v=localStorage.getItem("v12_ans_"+q.id);if(v!==null)$("t_"+q.id).value=v}for(const m of mats){$("m_"+m.id).checked=localStorage.getItem("v12_mat_"+m.id)==="1"}}
+function updateProgress(){const qs=applicableQuestions(currentRole);let n=0;for(const q of qs){if(($("t_"+q.id)?.value||"").trim())n++}const p=qs.length?Math.round(n/qs.length*100):0;$("bar").style.width=p+"%";$("countText").textContent=`与你相关的问题 ${qs.length} 个；文字已完成 ${n} 个（录音回答不计入该比例）。`}
+document.addEventListener("input",e=>{if(e.target.tagName==="TEXTAREA"){localStorage.setItem("v12_ans_"+e.target.id.replace("t_",""),e.target.value);updateProgress()}});
+$("startBtn").onclick=start;
+init().then(()=>{if(currentRole){$("role").value=currentRole;renderSurvey(currentRole);if(rid)$("ridText").textContent="填写编号："+rid}});
+</script></body></html>

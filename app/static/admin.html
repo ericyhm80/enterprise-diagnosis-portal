@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>诊断后台</title><style>
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;background:#f5f7fb;color:#16233a;margin:0}
+.wrap{max-width:1200px;margin:auto;padding:24px}.card{background:white;border:1px solid #dfe5ee;border-radius:14px;padding:18px;margin:14px 0}
+input{padding:10px;border:1px solid #ccd5df;border-radius:9px}.btn{padding:9px 12px;border:0;border-radius:9px;background:#0f5ea8;color:#fff;font-weight:650;cursor:pointer}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:9px;border-bottom:1px solid #edf0f4;font-size:13px}
+pre{white-space:pre-wrap;background:#f6f8fa;padding:10px;border-radius:8px}.muted{color:#6b778c;font-size:12px}.pill{background:#eaf2fb;padding:3px 7px;border-radius:999px}
+a{color:#0f5ea8}
+</style></head><body><div class="wrap">
+<h1>Enterprise Diagnosis Admin</h1>
+<div class="card"><input id="token" type="password" placeholder="Admin Token" style="width:320px"> <button class="btn" onclick="loadList()">登录/刷新</button><span id="msg" class="muted"></span></div>
+<div class="card"><h2>填写人</h2><div id="list"></div></div>
+<div class="card" id="detail" style="display:none"></div>
+</div>
+<script>
+let TOKEN="", current="";
+async function req(url,opt={}){opt.headers=Object.assign({},opt.headers||{},{"X-Admin-Token":TOKEN});const r=await fetch(url,opt);if(!r.ok)throw new Error(await r.text());return r.json()}
+async function loadList(){
+ TOKEN=token.value; sessionStorage.setItem("diag_admin_token",TOKEN);
+ try{
+ const rows=await req("/api/admin/respondents"); msg.textContent="已连接";
+ list.innerHTML=`<table><tr><th>公司</th><th>姓名</th><th>角色</th><th>回答</th><th>文件</th><th>更新</th></tr>`+
+ rows.map(r=>`<tr onclick="openR('${r.id}')" style="cursor:pointer"><td>${r.company||""}</td><td>${r.name||""}</td><td>${r.role||""}</td><td>${r.answer_count}</td><td>${r.file_count}</td><td>${new Date(r.updated_at*1000).toLocaleString()}</td></tr>`).join("")+"</table>";
+ }catch(e){msg.textContent="连接失败："+e.message}
+}
+async function openR(id){
+ current=id; const d=await req("/api/admin/respondent/"+id); detail.style.display="block";
+ let html=`<h2>${d.respondent.company||""} · ${d.respondent.name||""} <span class="muted">${d.respondent.role||""}</span></h2>`;
+ html+=`<p><button class="btn" onclick="exportJSON()">导出 JSON</button></p><h3>回答</h3>`;
+ html+=d.answers.map(a=>`<div><b>${a.question_id}</b><pre>${(a.text||"").replace(/[&<>]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[m]))}</pre></div>`).join("");
+ html+=`<h3>文件 / 录音</h3><table><tr><th>题目</th><th>文件</th><th>类型</th><th>转写</th><th>操作</th></tr>`;
+ html+=d.files.map(f=>`<tr><td>${f.question_id}</td><td>${f.original_name}</td><td>${f.kind}</td><td>${f.transcript_status||""}${f.transcript?`<br>${f.transcript.slice(0,160)}`:""}</td><td><a href="#" onclick="downloadFile('${f.id}','${f.original_name}');return false">下载</a> ${f.kind==="audio"?`<button class="btn" onclick="transcribe('${f.id}')">转写</button>`:""}</td></tr>`).join("")+"</table>";
+ detail.innerHTML=html; detail.scrollIntoView({behavior:"smooth"});
+}
+async function transcribe(fid){const r=await req("/api/admin/transcribe/"+fid,{method:"POST"});alert("状态："+r.status+(r.error?("\n"+r.error):""));openR(current)}
+async function downloadFile(fid,name){const r=await fetch("/api/admin/file/"+fid,{headers:{"X-Admin-Token":TOKEN}});if(!r.ok){alert(await r.text());return}const b=await r.blob();const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name;a.click();URL.revokeObjectURL(a.href)}
+async function exportJSON(){const r=await fetch("/api/admin/export/"+current,{headers:{"X-Admin-Token":TOKEN}});const b=await r.blob();const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="diagnosis_"+current+".json";a.click()}
+token.value=sessionStorage.getItem("diag_admin_token")||"";
+if(token.value)loadList();
+</script></body></html>
